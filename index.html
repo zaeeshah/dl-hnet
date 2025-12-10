@@ -1,331 +1,479 @@
+<!DOCTYPE html>
 <html>
 <head>
+  <meta charset="UTF-8">
+  <title>Time-Biased Token Merging for Audio Spectrogram Transformers</title>
 
-<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.1/jquery.min.js"></script>
+  <style type="text/css">
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
 
-<link rel="shortcut icon" href="images/icon.ico">
-<style type="text/css">
-	body {
-		background-color: #f5f9ff;
-	}
+    body {
+      background-color: #f5f9ff;
+      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+      line-height: 1.6;
+      color: #333;
+    }
 
-	/* Hide both math displays initially, will display based on JS detection */
-  .mathjax-mobile, .mathml-non-mobile { display: none; }
+    .container {
+      max-width: 900px;
+      margin: 0 auto;
+      background-color: #fff;
+      padding: 60px 80px;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
 
-  /* Show the MathML content by default on non-mobile devices */
-  .show-mathml .mathml-non-mobile { display: block; }
-  .show-mathjax .mathjax-mobile { display: block; }
+    /* Header styles */
+    .header {
+      margin-bottom: 40px;
+      border-bottom: 2px solid #e0e0e0;
+      padding-bottom: 20px;
+    }
 
-	.content-margin-container {
-		display: flex;
-		width: 100%; /* Ensure the container is full width */
-		justify-content: left; /* Horizontally centers the children in the container */
-		align-items: center;  /* Vertically centers the children in the container */
-	}
-	.main-content-block {
-		width: 70%; /* Change this percentage as needed */
-    max-width: 1100px; /* Optional: Maximum width */
-		background-color: #fff;
-		border-left: 1px solid #DDD;
-		border-right: 1px solid #DDD;
-		padding: 8px 8px 8px 8px;
-		font-family: "HelveticaNeue-Light", "Helvetica Neue Light", "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif;#"Avenir";
-	}
-	.margin-left-block {
-			font-size: 14px;
-			width: 15%; /* Change this percentage as needed */
-			max-width: 130px; /* Optional: Maximum width */
-			position: relative;
-			margin-left: 10px;
-			text-align: left;
-			font-family: "HelveticaNeue-Light", "Helvetica Neue Light", "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif;#"Avenir";
-			padding: 5px;
-	}
-	.margin-right-block {
-			font-family: "HelveticaNeue-Light", "Helvetica Neue Light", "Helvetica Neue", Helvetica, Arial, "Lucida Grande", sans-serif;#"Avenir";
-			font-size: 14px;
-			width: 25%; /* Change this percentage as needed */
-			max-width: 256px; /* Optional: Maximum width */
-			position: relative;
-			text-align: left;
-			padding: 10px;  /* Optional: Adds padding inside the caption */
-	}
+    .title {
+      font-size: 32px;
+      font-family: 'Courier New', Courier, monospace;
+      margin-bottom: 20px;
+      line-height: 1.3;
+    }
 
-	img {
-			max-width: 100%; /* Make sure it fits inside the container */
-			height: auto;
-			display: block;
-			margin: auto;
-	}
-	.my-video {
-			max-width: 100%; /* Make sure it fits inside the container */
-			height: auto;
-			display: block;
-			margin: auto;
-	}
-	/* Hide both video displays initially, will display based on JS detection */
-  .vid-mobile, .vid-non-mobile { display: none; }
+    .authors {
+      font-size: 18px;
+      margin-bottom: 10px;
+    }
 
-  /* Show the video content by default on non-mobile devices */
-  .show-vid-mobile .vid-mobile { display: block; }
-  .show-vid-non-mobile .vid-non-mobile { display: block; }
+    .affiliation {
+      font-size: 16px;
+      color: #666;
+    }
 
-	a:link,a:visited
-	{
-		color: #0e7862; /*#1367a7;*/
-		text-decoration: none;
-	}
-	a:hover {
-		color: #24b597; /*#208799;*/
-	}
+    /* Architecture image */
+    .hero-image {
+      margin: 40px 0;
+      text-align: center;
+    }
 
-	h1 {
-		font-size: 18px;
-		margin-top: 4px;
-		margin-bottom: 10px;
-	}
+    .hero-image img {
+      max-width: 100%;
+      height: auto;
+      border: 1px solid #e0e0e0;
+    }
 
-	table.header {
-    font-weight: 300;
-    font-size: 17px;
-    flex-grow: 1;
-		width: 70%;
-    max-width: calc(100% - 290px); /* Adjust according to the width of .paper-code-tab */
-	}
-	table td, table td * {
-	    vertical-align: middle;
-	    position: relative;
-	}
-	table.paper-code-tab {
-	    flex-shrink: 0;
-	    margin-left: 8px;
-	    margin-top: 8px;
-	    padding: 0px 0px 0px 8px;
-	    width: 290px;
-	    height: 150px;
-	}
+    .figure-caption {
+      margin-top: 10px;
+      font-size: 14px;
+      color: #666;
+      font-style: italic;
+      text-align: left;
+    }
 
-	.layered-paper { /* modified from: http://css-tricks.com/snippets/css/layered-paper/ */
-		box-shadow:
-		        0px 0px 1px 1px rgba(0,0,0,0.35), /* The top layer shadow */
-		        5px 5px 0 0px #fff, /* The second layer */
-		        5px 5px 1px 1px rgba(0,0,0,0.35), /* The second layer shadow */
-		        10px 10px 0 0px #fff, /* The third layer */
-		        10px 10px 1px 1px rgba(0,0,0,0.35); /* The third layer shadow */
-		margin-top: 5px;
-		margin-left: 10px;
-		margin-right: 30px;
-		margin-bottom: 5px;
-	}
+    /* Section styles */
+    h1 {
+      font-size: 24px;
+      margin-top: 40px;
+      margin-bottom: 20px;
+      color: #0e7862;
+      border-bottom: 1px solid #e0e0e0;
+      padding-bottom: 10px;
+    }
 
-	hr {
-    height: 1px; /* Sets the height of the line to 1 pixel */
-    border: none; /* Removes the default border */
-    background-color: #DDD; /* Sets the line color to black */
-  }
+    h2 {
+      font-size: 20px;
+      margin-top: 30px;
+      margin-bottom: 15px;
+      color: #333;
+    }
 
-	div.hypothesis {
-		width: 80%;
-		background-color: #EEE;
-		border: 1px solid black;
-		border-radius: 10px;
-		-moz-border-radius: 10px;
-		-webkit-border-radius: 10px;
-		font-family: Courier;
-		font-size: 18px;
-		text-align: center;
-		margin: auto;
-		padding: 16px 16px 16px 16px;
-	}
+    p {
+      margin-bottom: 15px;
+      text-align: justify;
+    }
 
-	div.citation {
-    font-size: 0.8em;
-    background-color:#fff;
-    padding: 10px;
-		height: 200px;
-  }
+    /* Links */
+    a {
+      color: #0e7862;
+      text-decoration: none;
+    }
 
-	.fade-in-inline {
-		position: absolute;
-		text-align: center;
-		margin: auto;
-		-webkit-mask-image: linear-gradient(to right,
-																			transparent 0%,
-																			transparent 40%,
-																			black 50%,
-																			black 90%,
-																			transparent 100%);
-		mask-image: linear-gradient(to right,
-																transparent 0%,
-																transparent 40%,
-																black 50%,
-																black 90%,
-																transparent 100%);
-		-webkit-mask-size: 8000% 100%;
-		mask-size: 8000% 100%;
-		animation-name: sweepMask;
-		animation-duration: 4s;
-		animation-iteration-count: infinite;
-		animation-timing-function: linear;
-		animation-delay: -1s;
-	}
+    a:hover {
+      color: #24b597;
+      text-decoration: underline;
+    }
 
-	.fade-in2-inline {
-			animation-delay: 1s;
-	}
+    /* Lists */
+    ul {
+      margin-left: 30px;
+      margin-bottom: 15px;
+    }
 
-	.inline-div {
-			position: relative;
-	    display: inline-block; /* Makes both the div and paragraph inline-block elements */
-	    vertical-align: top; /* Aligns them at the top, you can adjust this to middle, bottom, etc., based on your needs */
-	    width: 50px; /* Optional: Adds space between the div and the paragraph */
-	}
+    ul li {
+      margin-bottom: 8px;
+    }
 
-</style>
+    /* Figures */
+    .figure {
+      margin: 30px 0;
+      text-align: center;
+    }
 
-	  <title>The Platonic Representation Hypothesis</title>
-      <meta property="og:title" content="The Platonic Representation Hypothesis" />
-			<meta charset="UTF-8">
-  </head>
+    .figure img {
+      max-width: 100%;
+      height: auto;
+      border: 1px solid #e0e0e0;
+    }
 
-  <body>
+    /* Math and special formatting */
+    .math-inline {
+      font-style: italic;
+    }
 
-		<div class="content-margin-container">
-				<div class="margin-left-block">
-				</div>
-		    <div class="main-content-block">
-						<table class="header" align=left>
-								<tr>
-									<td colspan=4>
-										<span style="font-size: 32px; font-family: 'Courier New', Courier, monospace; /* Adds fallbacks */">A Grand Unified Theory of Deep Learning</span>
-									</td>
-								</tr>
-								<tr>
-										<td align=left>
-												<span style="font-size:17px"><a href="your_website">Your name</a></span>
-										</td>
-										<td align=left>
-												<span style="font-size:17px"><a href="your_partner's_website">Your partner's name</a></span>
-										</td>
-								<tr>
-									<td colspan=4 align=left><span style="font-size:18px">Final project for 6.7960, MIT</span></td>
-								</tr>
-						</table>
-					</div>
-					<div class="margin-right-block">
-					</div>
-		</div>
+    .indent {
+      margin-left: 30px;
+    }
 
-		<div class="content-margin-container" id="intro">
-				<div class="margin-left-block">
-          <!-- table of contents here -->
-          <div style="position:fixed; max-width:inherit; top:max(20%,120px)">
-              <b style="font-size:16px">Outline</b><br><br>
-              <a href="#intro">Introduction</a><br><br>
-              <a href="#does_x_do_y">Does X do Y?</a><br><br>
-              <a href="#implications_and_limitations">Implications and limitations</a><br><br>
-          </div>
-				</div>
-		    <div class="main-content-block">
-            <!--You can embed an image like this:-->
-            <img src="./images/your_image_here.png" width=512px/>
-		    </div>
-		    <div class="margin-right-block">
-						Caption for the image.
-		    </div>
-		</div>
+    /* References section */
+    .references {
+      margin-top: 40px;
+      font-size: 14px;
+    }
 
-    <div class="content-margin-container" id="intro">
-				<div class="margin-left-block">
-				</div>
-		    <div class="main-content-block">
-						<h1>Introduction</h1>
-            Motivate your project. What question are you asking. Why is it unanswered so far? What gap in the literature or practice are you filling?
-            Why is it important?
-		    </div>
-		    <div class="margin-right-block">
-						Margin note that clarifies some detail #main-content-block for intro section.
-		    </div>
-		</div>
+    .references h1 {
+      font-size: 20px;
+    }
 
-		<div class="content-margin-container" id="does_x_do_y">
-				<div class="margin-left-block">
-				</div>
-		    <div class="main-content-block">
-					<h1>Does X do Y?</h1>
-				  It is well known that Y does Y. And this has raised the question does X do Y? Because if Y does Y then it stands to reason that X does Y.
-          But we cannot answer this until we realize the Z implies Y and X can be linked to Z.<br><br>
+    .ref-item {
+      margin-bottom: 15px;
+      padding-left: 30px;
+      text-indent: -30px;
+    }
 
-          Now let's write some math!<br>
-          <center>
-            <math xmlns="http://www.w3.org/1998/Math/MathML">
-              <mrow>
-                <mrow>
-                  <mo>&#x2202;</mo>
-                  <mi>y</mi>
-                </mrow>
-                <mo>/</mo>
-                <mrow>
-                  <mo>&#x2202;</mo>
-                  <mi>x</mi>
-                </mrow>
-              </mrow>
-              <mo>=</mo>
-              <mi>x</mi>
-            </math>
-          </center>
-          <br>
-          It's probably best to ask an LLM to help do the web
-          formatting for math. You can tell it "convert this latex equation into MathML: $$\frac{\partial dy}{\partial dx} = x$$"
-          But it took me a few tries. So, if you get frustrated, you can embed an image of the equation, or use other packages for
-          rendering equations on webpages.
-		    </div>
-		    <div class="margin-right-block" style="transform: translate(0%, -100%);"> <!-- you can move the margin notes up and down with translate -->
-          Interestingly, Plato also asked if X does Y, in <a href="#ref_1">[1]</a>.
-		    </div>
-		</div>
+    /* Navigation */
+    .nav {
+      position: fixed;
+      left: 20px;
+      top: 100px;
+      background: white;
+      padding: 20px;
+      border: 1px solid #e0e0e0;
+      border-radius: 5px;
+      font-size: 14px;
+      max-width: 200px;
+    }
 
-		<div class="content-margin-container">
-				<div class="margin-left-block">
-				</div>
-		    <div class="main-content-block">
-            <h1>Another section</h1>
-            In this section we embed a video:
-						<video class='my-video' loop autoplay muted style="width: 725px">
-								<source src="./images/mtsh.mp4" type="video/mp4">
-						</video>
-		    </div>
-		    <div class="margin-right-block">
-					A caption for the video could go here.
-		    </div>
-		</div>
+    .nav h3 {
+      margin-bottom: 15px;
+      font-size: 16px;
+    }
 
-		<div class="content-margin-container" id="implications_and_limitations">
-				<div class="margin-left-block">
-				</div>
-		    <div class="main-content-block">
-						<h1>Implications and limitations</h1>
-						Let's end with some discussion of the implications and limitations.
-		    </div>
-		    <div class="margin-right-block">
-		    </div>
-		</div>
+    .nav a {
+      display: block;
+      margin-bottom: 10px;
+      color: #0e7862;
+    }
 
-		<div class="content-margin-container" id="citations">
-				<div class="margin-left-block">
-				</div>
-		    <div class="main-content-block">
-						<div class='citation' id="references" style="height:auto"><br>
-							<span style="font-size:16px">References:</span><br><br>
-							<a id="ref_1"></a>[1] <a href="https://en.wikipedia.org/wiki/Allegory_of_the_cave">Allegory of the Cave</a>, Plato, c. 375 BC<br><br>
-							<a id="ref_2"></a>[2] <a href="">A Human-Level AGI</a>, OpenAI, 2025<br><br>
-						</div>
-		    </div>
-		    <div class="margin-right-block">
-            <!-- margin notes for reference block here -->
-		    </div>
-		</div>
+    /* Responsive design */
+    @media (max-width: 1200px) {
+      .nav {
+        position: static;
+        max-width: 100%;
+        margin: 20px auto;
+      }
+    }
 
-	</body>
+    @media (max-width: 768px) {
+      .container {
+        padding: 30px 20px;
+      }
 
+      .title {
+        font-size: 24px;
+      }
+
+      h1 {
+        font-size: 20px;
+      }
+
+      h2 {
+        font-size: 18px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <!-- Header -->
+    <div class="header">
+      <div class="title">
+        Time-Biased Token Merging for Audio Spectrogram Transformers
+      </div>
+      <div class="authors">
+        Peter Dong, Zaee Shah, Sophia Zhang
+      </div>
+      <div class="affiliation">
+        Final project for 6.7960, MIT
+      </div>
+    </div>
+
+    <!-- Hero/Architecture Image -->
+    <div class="hero-image">
+      <img src="./images/ast_architecture.png" alt="AST architecture and tokenization diagram">
+      <div class="figure-caption">
+        Figure 1: Illustration of the Audio Spectrogram Transformer (AST) pipeline. A mel spectrogram is split into overlapping patches, embedded, and passed through a Transformer encoder. A class token aggregates information for classification <a href="#ref1">[1]</a>.
+      </div>
+    </div>
+
+    <!-- Introduction -->
+    <h1 id="introduction">Introduction</h1>
+    <p>
+      Audio classification is a pivotal task in modern machine learning, supporting applications such as sound event detection, speech recognition, and music tagging. Recent progress in this space has been driven by transformer-based models, particularly Audio Spectrogram Transformers (ASTs) <a href="#ref1">[1]</a>, which adapt the Vision Transformer architecture to operate directly on spectrogram inputs. Separately, token merging <a href="#ref2">[2]</a> has emerged as a general technique for accelerating transformers by condensing similar tokens between layers, allowing models to process fewer tokens while preserving performance. In principle, token merging can be applied to ASTs to reduce computational cost.
+    </p>
+    <p>
+      However, spectrograms are fundamentally different from images, and these differences affect how and when tokens should be merged. In image classification, spatial transformations such as flipping or reordering regions often preserve semantic meaning. In audio, the temporal axis carries inherent directionality; events cannot be reversed or substantially shifted without altering their interpretation. As a result, directly applying image-based token merging to spectrograms may lead to merging temporally distant regions (e.g., multiple occurrences of silence) that are similar in content but should ideally remain separate for downstream classification. To address this, we introduce a time-aware bias into token merging to better align the technique with the structure of audio data and improve performance on AST-based classification tasks.
+    </p>
+
+    <!-- Background -->
+    <h1 id="background">Background</h1>
+
+    <h2>Audio Spectrogram Transformers (ASTs)</h2>
+    <p>
+      A mel spectrogram is a time-frequency representation of audio in which the frequency axis is compressed using the mel scale, producing a compact 2D array whose structure closely resembles an image. This image-like format enables the direct application of vision-based architectures to audio data.
+    </p>
+    <p>
+      Audio Spectrogram Transformers (ASTs) <a href="#ref1">[1]</a> leverage this insight by treating spectrograms as images. The model converts an input spectrogram into a sequence of small overlapping patches, projects each patch into an embedding, and adds positional encodings before feeding the sequence into a standard Transformer encoder <a href="#ref4">[4]</a>. A learnable classification token aggregates global information across all patches, and its final embedding is passed through a linear layer to produce predictions. Because AST applies self-attention directly to spectrogram patches, it can model long-range time-frequency dependencies even in the earliest layers <a href="#ref5">[5]</a>, enabling strong performance across diverse audio tasks. This convolution-free architecture has become a standard baseline that many newer audio classification systems build upon.
+    </p>
+
+    <h2>Token Merging for ViTs</h2>
+
+    <div class="figure">
+      <img src="./images/token_merging_vits.png" alt="Token merging for ViTs">
+      <div class="figure-caption">
+        Figure 2: Token merging for ViTs: tokens form bipartite sets and are merged along high-similarity edges <a href="#ref2">[2]</a>.
+      </div>
+    </div>
+
+    <p>
+      Because each global attention layer scales quadratically with the number of tokens, transformer models become increasingly expensive to run as input resolution or sequence length grows. Token merging <a href="#ref2">[2]</a> is a technique introduced to accelerate transformers by reducing the number of tokens passed through the network while preserving as much semantic information as possible.
+    </p>
+    <p>
+      After each transformer layer, a fixed number of tokens <span class="math-inline">r</span> are removed by merging them with their most similar neighbors, causing the sequence length to shrink gradually with depth. The transformer architecture already summarizes token information, giving us a natural similarity metric: we reuse the key matrix <span class="math-inline">K</span> from the standard QKV attention formulation and compute cosine similarity between token keys to determine how similar two tokens are.
+    </p>
+    <p>
+      To determine which tokens to merge, the method performs bipartite soft matching. Tokens are partitioned into two interleaved sets <span class="math-inline">A</span> and <span class="math-inline">B</span>, and each token in <span class="math-inline">A</span> is paired with its most similar counterpart in <span class="math-inline">B</span>, producing a set of candidate merge edges. The top <span class="math-inline">r</span> highest-similarity pairs are selected, and each matched pair is merged by averaging their representations, weighted by token size.
+    </p>
+    <p>
+      This procedure is extremely efficient, nearly as fast as simple pruning, yet preserves substantially more information, allowing transformers to operate with far fewer tokens while maintaining strong performance. In practice, because ASTs include a class token that is never merged, we require the class token plus at least one remaining patch token; otherwise, the model would lose all spatial information from the spectrogram.
+    </p>
+
+    <h2>Why Token Merging for Audio?</h2>
+    <p>
+      Token merging is particularly well-motivated for audio models such as ASTs, which apply self-attention over all input tokens. Unlike images, where the spatial resolution is typically bounded, the temporal dimension of audio can grow arbitrarily long depending on the dataset and task (e.g., long-form speech, environmental soundscapes). As sequence length increases, the quadratic cost of self-attention becomes a major bottleneck. Token merging provides a principled way to reduce the number of tokens, thereby decreasing computational cost and inference time while aiming to preserve task performance.
+    </p>
+    <p>
+      Beyond efficiency, audio signals exhibit a strongly hierarchical structure: phonemes compose words, words compose phrases, and phrases compose higher-level arguments or scenes. Because ToMe merges a fixed number of tokens at the end of each Transformer block, it progressively compresses the sequence in a way that naturally aligns with this hierarchy by collapsing redundant regions while retaining high-level information needed for classification.
+    </p>
+    <p>
+      While ToMe has already been applied to ASTs <a href="#ref3">[3]</a>, existing approaches largely treat audio tokens in the same way as image patches. In the next section, we explore how adapting token merging more explicitly to audio (by introducing a novel inductive bias that favors temporally local structure) can better exploit the structure of spectrogram inputs.
+    </p>
+
+    <!-- Proposed Change -->
+    <h1 id="proposed-change">Proposed Change</h1>
+    <p>
+      Because we operate on audio spectrograms rather than images, we hypothesize that merging based on standard cosine-based token similarity is insufficient for long sequences. While temporal information is embedded by positional encoding within each token and therefore not ignored by ToMe's similarity metric, the original formulation treats all token relationships symmetrically, without accounting for the fact that the time axis is disproportionately important in audio classification. This can lead to merging temporally distant regions (e.g., multiple occurrences of silence) that are similar in content but should ideally remain separate for downstream classification. To address this, we introduce a novel time-aware regularization term that biases token merging toward temporally local pairs.
+    </p>
+    <p>
+      Concretely, we adapt the bipartite soft matching from ToMe and define a time-weighted similarity score. Let <span class="math-inline">x ∈ ℝ<sup>B×T×C</sup></span> denote the sequence of token embeddings, where <span class="math-inline">T</span> is the number of tokens. At the input to the AST encoder, we assign each token a scalar time coordinate <span class="math-inline">t<sub>i</sub></span> corresponding to its normalized position in the sequence:
+    </p>
+    <p class="indent">
+      <span class="math-inline">t<sub>i</sub> = i / (T − 1), &nbsp;&nbsp; i = 0, ..., T − 1, &nbsp;&nbsp; t<sub>i</sub> ∈ [0, 1]</span>
+    </p>
+    <p>
+      These time coordinates are stored as an additional tensor <span class="math-inline">t ∈ ℝ<sup>B×T×1</sup></span>. During bipartite matching, we split the token sequence into sets A and B. We modify the cosine similarity scores between token keys
+    </p>
+    <p class="indent">
+      <span class="math-inline">s<sup>cos</sup><sub>ij</sub> = ⟨a<sub>i</sub>, b<sub>j</sub>⟩ / (||a<sub>i</sub>|| ||b<sub>j</sub>||)</span>
+    </p>
+    <p>
+      by introducing a corresponding squared temporal distance:
+    </p>
+    <p class="indent">
+      <span class="math-inline">d<sup>time</sup><sub>ij</sub> = (t<sub>i</sub> − t<sub>j</sub>)<sup>2</sup></span>
+    </p>
+    <p>
+      Our final time-weighted merging score is
+    </p>
+    <p class="indent">
+      <span class="math-inline">s<sub>ij</sub> = s<sup>cos</sup><sub>ij</sub> − λ d<sup>time</sup><sub>ij</sub></span>
+    </p>
+    <p>
+      where <span class="math-inline">λ ≥ 0</span> is a hyperparameter controlling the strength of the temporal penalty. We then select the top-<span class="math-inline">r</span> pairs according to <span class="math-inline">s<sub>ij</sub></span> and merge them using the standard ToMe weighted-average merge operator. We update token time coordinates with the same rule (the merged time for a token is the size-weighted mean of the times of its constituent tokens), ensuring that each merged token retains a well-defined effective timestamp.
+    </p>
+    <p>
+      When <span class="math-inline">λ = 0</span>, our method reduces exactly to the original cosine-only ToMe; larger <span class="math-inline">λ</span> values increasingly discourage merges between tokens that are far apart in time. We expect the benefit of this regularization term to depend on the dataset and sequence length. For short utterances with relatively few tokens (e.g., single-word commands), most tokens belong to a single acoustic event, so temporal locality is less critical and the time penalty may have a limited effect. For longer clips with many tokens (e.g., environmental audio or multi-event recordings), there are more opportunities for erroneous long-range merges, and we hypothesize that the time-weighted objective will better preserve local temporal structure and thus yield larger performance gains.
+    </p>
+
+    <!-- Datasets -->
+    <h1 id="datasets">Datasets</h1>
+    <p>
+      We test on two different datasets to investigate the effect of this temporal factor in a general sense. Since both chosen datasets were used in the original AST paper <a href="#ref1">[1]</a>, we loaded and processed the data using the same procedure.
+    </p>
+
+    <h2>Speech Commands V2 <a href="#ref6">[6]</a></h2>
+    <p>
+      The SpeechCommandsV2 dataset is an audio dataset from Google containing a collection of 1-second audio clips of people speaking simple keywords. It is frequently used to train very simple speech recognition tasks and contains:
+    </p>
+    <ul>
+      <li>~105k samples of 35 words (e.g., <em>up</em>, <em>down</em>, <em>go</em>, <em>backward</em>)</li>
+      <li>Recordings from thousands of different speakers in many acoustic conditions</li>
+      <li>16 kHz mono WAV files</li>
+    </ul>
+
+    <h2>AudioSet (balanced split) <a href="#ref7">[7]</a></h2>
+    <p>
+      AudioSet is a collection of human-labeled audio events released by Google, built from 10-second clips extracted from YouTube videos and labeled with a rich ontology of sound classes. We analyze the balanced split of this dataset, which balances samples across classes and contains:
+    </p>
+    <ul>
+      <li>~18k training clips and ~17k evaluation clips (balanced across classes)</li>
+      <li>Over 500 possible sound event classes (e.g., speech, music, vehicles, animals, ambient/environmental sounds)</li>
+      <li>10-second mono WAV files (originally 44.1–48 kHz, resampled to 16 kHz)</li>
+      <li>Multi-label annotations: each clip can contain multiple overlapping events</li>
+    </ul>
+
+    <!-- Experiments -->
+    <h1 id="experiments">Experiments</h1>
+    <p>
+      We run the two different datasets through our modified architecture and check performance on classifying both datasets. For both datasets, we use the corresponding finetuned weights from the original AST paper <a href="#ref1">[1]</a> and simply modify the architecture with the ToMe blocks. This ensures that we have high accuracy and can analyze the effects of token merging.
+    </p>
+    <p>
+      To analyze whether adding the temporal penalty term improves the performance of the AST model on Speech Commands V2, we vary two values: <span class="math-inline">λ</span> and <span class="math-inline">r</span>. As discussed earlier, <span class="math-inline">λ</span> increases the temporal penalty, changing which tokens are merged. <span class="math-inline">r</span> controls the number of tokens merged for each of our 12 layers. Note that when <span class="math-inline">r = 0</span>, no tokens are merged, and the model behaves like the standard AST model. To evaluate the model's behavior on each combination of <span class="math-inline">λ</span> and <span class="math-inline">r</span>, we analyze the model's accuracy or mean average precision (depending on the dataset).
+    </p>
+    <p>
+      For Speech Commands V2, we evaluated token-merging configurations across <span class="math-inline">λ ∈ {0, 1, 2, 3, 4}</span> and <span class="math-inline">r ∈ {0, 2, 4, 8}</span>. For this dataset, AST produces 144 tokens when no merging is applied (<span class="math-inline">r = 0</span>). To study a wide range of compression regimes, we evaluate <span class="math-inline">r = 2, 4,</span> and <span class="math-inline">8</span>, which merge 16.6%, 33.3%, and 66.7% of total tokens, respectively, by the end of the transformer layers. We test <span class="math-inline">λ</span> values from 1 to 4, ranging from a mild to a strong preference for merging temporally adjacent tokens. We use accuracy as the evaluation metric; the dataset is a balanced, closed-set classification task with one label per clip, and accuracy is consistent with how the AST paper reports results.
+    </p>
+    <p>
+      For AudioSet, as the dataset contains roughly ten times more input tokens per clip than Speech Commands V2, we scale up our <span class="math-inline">r</span> values by a factor of 10 to achieve a similar compression regime. Thus, for AudioSet, we evaluated <span class="math-inline">λ ∈ {0, 1, 2, 3, 4}</span> and <span class="math-inline">r ∈ {0, 20, 40, 80}</span>. We evaluate using mean average precision (mAP) and total speedup. mAP is well-suited for AudioSet's multi-label classification, measuring how well the model ranks true positives across all classes. This choice also aligns with the original AST paper, facilitating direct comparison with existing baselines.
+    </p>
+    <p>
+      Note that prior work <a href="#ref3">[3]</a> already demonstrates that token merging yields significant speedups. Our focus is on whether adding the temporal penalty term can improve or preserve performance without substantially affecting these speedups.
+    </p>
+
+    <!-- Results -->
+    <h1 id="results">Results</h1>
+
+    <h2>Speech Commands V2</h2>
+
+    <div class="figure">
+      <img src="./images/speechcommands_results.png" alt="SpeechCommandsV2 results">
+      <div class="figure-caption">
+        Figure 3: SpeechCommandsV2 accuracy as a function of <span class="math-inline">r</span> and <span class="math-inline">λ</span>.
+      </div>
+    </div>
+
+    <p>
+      Figure 3 compares models trained with different time-penalty values <span class="math-inline">λ ∈ {1, 2, 3, 4}</span> against the baseline without a time penalty (<span class="math-inline">λ = 0</span>) as we vary the number of tokens removed per block <span class="math-inline">r</span>. Results are mixed, and the time penalty term does not consistently improve performance. This suggests that on this dataset, additional temporal information beyond what is already included in token embeddings does not provide extra benefit during token merging.
+    </p>
+
+    <h2>AudioSet</h2>
+
+    <div class="figure">
+      <img src="./images/audioset_results.png" alt="AudioSet results">
+      <div class="figure-caption">
+        Figure 4: AudioSet mAP as a function of <span class="math-inline">r</span> and <span class="math-inline">λ</span>. <span class="math-inline">λ = 2</span> consistently performs best.
+      </div>
+    </div>
+
+    <p>
+      Figure 4 compares models with different time-penalty values <span class="math-inline">λ ∈ {1, 2, 3, 4}</span> against the baseline without a time penalty (<span class="math-inline">λ = 0</span>) on AudioSet as we vary the number of tokens removed per block <span class="math-inline">r</span>. Across all compression levels, <span class="math-inline">λ = 2</span> consistently achieves the highest mean average precision (mAP), with the gap over <span class="math-inline">λ = 0</span> growing as more tokens are merged. <span class="math-inline">λ = 1</span> is the second-best setting, with <span class="math-inline">λ = 3</span> and <span class="math-inline">λ = 4</span> following respectively.
+    </p>
+    <p>
+      These results suggest that a moderate time penalty (<span class="math-inline">λ = 2</span>) strikes the best balance between temporal proximity and cosine similarity on AudioSet. As <span class="math-inline">λ</span> becomes too large, the time term dominates the energy, effectively down-weighting the cosine similarity and causing the merge decisions to depend almost entirely on temporal distance, which leads to a sharper drop in accuracy as <span class="math-inline">r</span> increases.
+    </p>
+    <p>
+      To verify that the time penalty meaningfully influences merge selection, we measured the fraction of merged token pairs that differ from the baseline merges produced with <span class="math-inline">λ = 0</span>. For nonzero <span class="math-inline">λ</span> values, this fraction ranged from 76.7% to 85.1%, indicating that the temporal penalty substantially reshapes the merge decisions rather than leaving them unchanged.
+    </p>
+
+    <h2>Effect of λ on Speedup</h2>
+
+    <div class="figure">
+      <img src="./images/speedup_results.png" alt="Speedup results">
+      <div class="figure-caption">
+        Figure 5: Speedup vs. number of merged tokens. Temporal bias has negligible effect on throughput.
+      </div>
+    </div>
+
+    <p>
+      As shown in Figure 5, introducing the temporal penalty term (<span class="math-inline">λ > 0</span>) has little effect on the throughput gains from token merging: all <span class="math-inline">λ</span> values track the <span class="math-inline">λ = 0</span> baseline closely. On AudioSet, this difference is even harder to distinguish, likely because the much larger number of tokens dominates the computation. Overall, as the number of input tokens grows, the cost of computing the temporal penalty term is amortized and becomes negligible, so speedup is determined almost entirely by how many tokens are removed.
+    </p>
+
+    <!-- Discussion -->
+    <h1 id="discussion">Discussion</h1>
+    <p>
+      In this project, we explored how token merging can be better adapted to audio spectrogram transformers. Although token merging is well established in vision models, its application to audio remains less examined, with prior work largely treating audio tokens like image patches. Our contribution is a time-aware similarity metric that discourages merges between temporally distant tokens, reflecting the heightened importance of temporal structure in audio tasks. Through our experiments, we observed that the time-weighted merging scheme behaves comparably to standard ToMe on short, single-word utterances such as Speech Commands V2, but provides clearer benefits on longer, multi-event audio clips such as those in AudioSet.
+    </p>
+    <p>
+      Our time-based merging strategy implicitly assumes that temporal position is a particularly meaningful feature for classification. This assumption introduces a dataset-dependent limitation: the method should be most effective on long datasets, where time is crucial for distinguishing between semantically different regions of similar frequencies. However, the longest dataset our experiments were constrained to was AudioSet (10-second clips), which may underrepresent the full benefit of time-based merging. While AudioSet shows a concrete trend that does better with time bias, we anticipate that datasets of longer-form audio, such as music, would benefit even more due to the greater significance of temporal structure.
+    </p>
+
+    <!-- Future Directions -->
+    <h1 id="future-directions">Future Directions</h1>
+    <ul>
+      <li>
+        <strong>Energy-based merging.</strong> Recently, energy-based token merging metrics <a href="#ref8">[8]</a> have been explored. It would be interesting to introduce a temporal bias directly into the learned energy function.
+      </li>
+      <li>
+        <strong>Music information retrieval.</strong> Applying time-aware token merging to music may perform particularly well, since long, hierarchical inputs are common in music.
+      </li>
+      <li>
+        <strong>Time penalty during model training.</strong> Because of time constraints for training large ASTs, we did not train a model with this architecture from scratch. Investigating the effect of this time penalty factor during training may yield interesting results.
+      </li>
+      <li>
+        <strong>Merging vs. pruning.</strong> There are many ways to reduce the number of tokens passed into later transformer layers. Besides merging (which we analyze), pruning (removing tokens) or hybrid strategies are possible. It would be interesting to investigate the effect of this time bias on token pruning and see whether it performs differently from merging.
+      </li>
+    </ul>
+    <p>
+      Overall, this work establishes a foundation for incorporating temporal biases into token merging for audio models, with ample room to extend these ideas to longer-form datasets and more sophisticated merging strategies.
+    </p>
+
+    <!-- References -->
+    <div class="references">
+      <h1 id="references">References</h1>
+
+      <div class="ref-item" id="ref1">
+        [1] Y. Gong, et al. <em>AST: Audio Spectrogram Transformer</em>, 2021.
+      </div>
+
+      <div class="ref-item" id="ref2">
+        [2] D. Bolya, et al. <em>Token Merging: Your ViT But Faster</em>, 2023.
+      </div>
+
+      <div class="ref-item" id="ref3">
+        [3] S. Behra, et al. <em>FastAST: Accelerating Audio Spectrogram Transformer via Token Merging and Cross-Model Knowledge Distillation</em>, 2024.
+      </div>
+
+      <div class="ref-item" id="ref4">
+        [4] A. Dosovitskiy, et al. <em>An Image is Worth 16x16 Words: Transformers for Image Recognition at Scale</em>, 2020.
+      </div>
+
+      <div class="ref-item" id="ref5">
+        [5] A. Vaswani, et al. <em>Attention Is All You Need</em>, 2017.
+      </div>
+
+      <div class="ref-item" id="ref6">
+        [6] P. Warden. <em>Speech Commands: A Dataset for Limited-Vocabulary Speech Recognition</em>, 2018.
+      </div>
+
+      <div class="ref-item" id="ref7">
+        [7] J. Gemmeke, et al. <em>AudioSet: An Ontology and Human-Labeled Dataset for Audio Events</em>, 2017.
+      </div>
+
+      <div class="ref-item" id="ref8">
+        [8] H. Tran, et al. <em>Accelerating Transformers with Spectrum-Preserving Token Merging</em>, 2025.
+      </div>
+    </div>
+
+  </div>
+</body>
 </html>
